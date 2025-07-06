@@ -102,4 +102,24 @@ const oompaLoompaSlice = createSlice({
 export const { setFilter, clearError } = oompaLoompaSlice.actions;
 export default oompaLoompaSlice.reducer;
 
+export const selectFilteredOompaLoompas = (state: {
+  oompaLoompas: OompaLoompaState;
+}) => {
+  const { data, filter } = state.oompaLoompas;
+
+  if (!filter || filter.trim() === "") {
+    return data;
+  }
+
+  const searchTerm = filter.toLowerCase().trim();
+
+  return data.filter((character) => {
+    const fullName =
+      `${character.first_name} ${character.last_name}`.toLowerCase();
+    const profession = character.profession.toLowerCase();
+
+    return fullName.includes(searchTerm) || profession.includes(searchTerm);
+  });
+};
+
 export type { OompaLoompa, OompaLoompaState };

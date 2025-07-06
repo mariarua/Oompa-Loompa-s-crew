@@ -4,6 +4,7 @@ import type { RootState, AppDispatch } from "../store/index";
 import type { OompaLoompa } from "../store/slices/oompaLoompaSlice";
 import { fetchOompaLoompas } from "../store/slices/oompaLoompaSlice";
 import CharacterCard from "./CharacterCard";
+import { selectFilteredOompaLoompas } from "../store/slices/oompaLoompaSlice";
 
 const CharacterGrid = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -11,6 +12,7 @@ const CharacterGrid = () => {
     (state: RootState) => state.oompaLoompas
   );
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const filteredData = useSelector(selectFilteredOompaLoompas);
 
   const handleCardClick = (id: number) => {
     console.log(`Card with ID ${id} clicked`);
@@ -44,7 +46,7 @@ const CharacterGrid = () => {
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6 max-w-7xl mx-auto">
-        {data.map((character: OompaLoompa) => (
+        {filteredData.map((character: OompaLoompa) => (
           <CharacterCard
             key={character.id}
             id={character.id}

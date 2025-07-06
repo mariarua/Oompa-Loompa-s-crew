@@ -20,7 +20,9 @@ function App() {
     }
   }, [dispatch, data.length]);
 
-  if (loading) return <div className="bg-red-900">Loading...</div>;
+  if (loading && data.length === 0) {
+    return <div className="bg-red-900">Loading...</div>;
+  }
 
   console.log("Oompa Loompas Data:", data);
 

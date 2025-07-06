@@ -77,6 +77,10 @@ const oompaLoompaSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+      .addCase(fetchOompaLoompas.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to fetch data";
+      })
       .addCase(fetchOompaLoompas.fulfilled, (state, action) => {
         state.loading = false;
 
@@ -87,11 +91,10 @@ const oompaLoompaSlice = createSlice({
 
         state.data = [...state.data, ...newData];
         state.lastFetch = Date.now();
-        state.currentPage += 1;
-      })
-      .addCase(fetchOompaLoompas.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || "Failed to fetch data";
+
+        if (newData.length > 0) {
+          state.currentPage = action.payload.current + 1;
+        }
       });
   },
 });

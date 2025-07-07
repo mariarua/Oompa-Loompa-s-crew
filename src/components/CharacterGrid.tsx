@@ -1,27 +1,40 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store/index";
 import type { OompaLoompa } from "../store/slices/oompaLoompaSlice";
 import { fetchOompaLoompas } from "../store/slices/oompaLoompaSlice";
 import CharacterCard from "./CharacterCard";
+import { useNavigate } from "react-router-dom";
 import { selectFilteredOompaLoompas } from "../store/slices/oompaLoompaSlice";
 
 const CharacterGrid = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const { data, loading, currentPage } = useSelector(
+  const { data, loading, currentPage, filter } = useSelector(
     (state: RootState) => state.oompaLoompas
   );
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const filteredData = useSelector(selectFilteredOompaLoompas);
 
-  const handleCardClick = (id: number) => {
-    console.log(`Card with ID ${id} clicked`);
-  };
+  const handleCardClick = useCallback(
+    (id: number) => {
+      navigate(`/${id}`);
+    },
+    [navigate]
+  );
+
+  const hasActiveFilter = filter && filter.trim() !== "";
+  const shouldShowInfiniteScroll = !hasActiveFilter;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && data.length > 0) {
+        if (
+          entries[0].isIntersecting &&
+          !loading &&
+          data.length > 0 &&
+          shouldShowInfiniteScroll
+        ) {
           console.log(`Loading page ${currentPage}...`);
           dispatch(fetchOompaLoompas(currentPage));
         }
@@ -32,7 +45,7 @@ const CharacterGrid = () => {
       }
     );
 
-    if (loadMoreRef.current) {
+    if (loadMoreRef.current && shouldShowInfiniteScroll) {
       observer.observe(loadMoreRef.current);
     }
 
@@ -41,7 +54,15 @@ const CharacterGrid = () => {
         observer.unobserve(loadMoreRef.current);
       }
     };
-  }, [dispatch, currentPage, loading, data.length]);
+  }, [dispatch, currentPage, loading, data.length, shouldShowInfiniteScroll]);
+
+  if (hasActiveFilter && filteredData.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        No Oompa Loompas found for "{filter}" 🔍
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -59,12 +80,18 @@ const CharacterGrid = () => {
           />
         ))}
       </div>
-
-      <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
-        {loading && (
-          <div className="text-gray-500">Loading more Oompa Loompas... 🍫</div>
-        )}
-      </div>
+      {shouldShowInfiniteScroll && (
+        <div
+          ref={loadMoreRef}
+          className="h-20 flex items-center justify-center"
+        >
+          {loading && (
+            <div className="text-gray-500">
+              Loading more Oompa Loompas... 🍫
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

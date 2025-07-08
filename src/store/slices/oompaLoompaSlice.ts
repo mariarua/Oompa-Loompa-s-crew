@@ -15,6 +15,8 @@ interface OompaLoompa {
   age: number;
   country: string;
   height: number;
+  description?: string;
+  quota?: string;
   favorite: {
     color: string;
     food: string;

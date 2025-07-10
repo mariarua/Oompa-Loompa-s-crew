@@ -1,19 +1,62 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import type { RootState, AppDispatch } from "../store/index";
-import type { OompaLoompa } from "../store/slices/oompaLoompaSlice";
-import { fetchOompaLoompas } from "../store/slices/oompaLoompaSlice";
-import CharacterCard from "./CharacterCard";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { selectFilteredOompaLoompas } from "../store/slices/oompaLoompaSlice";
+import type { RootState } from "../store/index";
+import type { MinimalOompaLoompa } from "../types/oompaLoompa";
+import {
+  loadOompaLoompasPage,
+  selectFilteredOompaLoompas,
+} from "../store/slices/oompaLoompaSlice";
+import { useAppDispatch } from "../store/hooks";
+import CharacterCard from "./CharacterCard";
+
+const INTERSECTION_CONFIG = {
+  threshold: 0.1,
+  rootMargin: "100px",
+} as const;
+
+const EmptyState = ({ filter }: { filter: string }) => (
+  <div className="text-center py-8 text-gray-500">
+    <div className="text-6xl mb-4">🔍</div>
+    <div className="text-lg">No Oompa Loompas found for "{filter}"</div>
+    <div className="text-sm text-gray-400 mt-2">
+      Try searching by name or profession
+    </div>
+  </div>
+);
+
+const StatusInfo = ({
+  count,
+  hasMore,
+}: {
+  count: number;
+  currentPage: number;
+  totalPages: number;
+  hasMore: boolean;
+}) => (
+  <div className="text-center py-4 text-sm text-gray-500">
+    <div>
+      Showing {count} Oompa Loompas
+      {hasMore && ` • Loading more...`}
+    </div>
+  </div>
+);
+
+const LoadingIndicator = () => (
+  <div className="flex items-center space-x-2 text-gray-500">
+    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#19B6C8]" />
+    <span>Loading more Oompa Loompas... 🍫</span>
+  </div>
+);
 
 const CharacterGrid = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
-  const { data, loading, currentPage, filter } = useSelector(
+  const dispatch = useAppDispatch();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const { loading, currentPage, hasMore, filter, totalPages } = useSelector(
     (state: RootState) => state.oompaLoompas
   );
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const filteredData = useSelector(selectFilteredOompaLoompas);
 
   const handleCardClick = useCallback(
@@ -23,51 +66,41 @@ const CharacterGrid = () => {
     [navigate]
   );
 
-  const hasActiveFilter = filter && filter.trim() !== "";
-  const shouldShowInfiniteScroll = !hasActiveFilter;
+  const hasActiveFilter = Boolean(filter?.trim());
+  const shouldShowInfiniteScroll = !hasActiveFilter && hasMore;
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          !loading &&
-          data.length > 0 &&
-          shouldShowInfiniteScroll
-        ) {
-          console.log(`Loading page ${currentPage}...`);
-          dispatch(fetchOompaLoompas(currentPage));
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: "100px",
+    const observer = new IntersectionObserver(([entry]) => {
+      if (
+        entry.isIntersecting &&
+        !loading &&
+        shouldShowInfiniteScroll &&
+        hasMore
+      ) {
+        dispatch(loadOompaLoompasPage(currentPage));
       }
-    );
+    }, INTERSECTION_CONFIG);
 
-    if (loadMoreRef.current && shouldShowInfiniteScroll) {
-      observer.observe(loadMoreRef.current);
+    const currentRef = loadMoreRef.current;
+    if (currentRef && shouldShowInfiniteScroll) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
-  }, [dispatch, currentPage, loading, data.length, shouldShowInfiniteScroll]);
+  }, [dispatch, currentPage, loading, shouldShowInfiniteScroll, hasMore]);
 
   if (hasActiveFilter && filteredData.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        No Oompa Loompas found for "{filter}" 🔍
-      </div>
-    );
+    return <EmptyState filter={filter!} />;
   }
 
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6 max-w-7xl mx-auto">
-        {filteredData.map((character: OompaLoompa) => (
+        {filteredData.map((character: MinimalOompaLoompa) => (
           <CharacterCard
             key={character.id}
             id={character.id}
@@ -80,16 +113,22 @@ const CharacterGrid = () => {
           />
         ))}
       </div>
+
+      {!hasActiveFilter && (
+        <StatusInfo
+          count={filteredData.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          hasMore={hasMore}
+        />
+      )}
+
       {shouldShowInfiniteScroll && (
         <div
           ref={loadMoreRef}
           className="h-20 flex items-center justify-center"
         >
-          {loading && (
-            <div className="text-gray-500">
-              Loading more Oompa Loompas... 🍫
-            </div>
-          )}
+          {loading && <LoadingIndicator />}
         </div>
       )}
     </div>

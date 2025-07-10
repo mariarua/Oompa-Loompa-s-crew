@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useDispatch } from "react-redux";
 import { setFilter } from "../store/slices/oompaLoompaSlice";
 import type { AppDispatch } from "../store/index";
@@ -7,7 +7,7 @@ const SearchBar = () => {
   const [searchValue, setSearchValue] = useState("");
   const dispatch = useDispatch<AppDispatch>();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchValue(value);
 
